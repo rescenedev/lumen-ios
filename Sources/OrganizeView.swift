@@ -82,7 +82,13 @@ struct OrganizeView: View {
 
     private var count: Int { source.count }
     private var keepCount: Int { session.keepCount }
-    private var trashAssets: [PHAsset] { session.trashIndices.map { source.asset($0) } }
+    // Drop placeholder assets: a source whose fetch resolved to empty (library
+    // shrank mid-session) hands back a blank PHAsset, which must never reach
+    // deleteAssets — its empty localIdentifier filters it out here.
+    private var trashAssets: [PHAsset] {
+        session.trashIndices.map { source.asset($0) }.filter { !$0.localIdentifier.isEmpty }
+    }
+    @State private var deleting = false   // guards against double-tapping 한번에 삭제
 
     var body: some View {
         ZStack {
@@ -506,8 +512,10 @@ struct OrganizeView: View {
                             .font(.subheadline.weight(.semibold)).foregroundStyle(.white)
                             .frame(maxWidth: .infinity).padding(.vertical, 16)
                             .background(Color.red.opacity(0.75), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                            .opacity(deleting ? 0.6 : 1)
                     }
                     .buttonStyle(.plain)
+                    .disabled(deleting)
                     .padding(.horizontal, 28)
                 }
                 // No support/sponsor ask here — a screen confirming deletion must
@@ -567,7 +575,14 @@ struct OrganizeView: View {
     /// Up-swipe: mark the photo for deletion and fly it up.
     private func trashFromSwipe() {
         guard index < count else { return }
+        let previous = session.decision(at: index)
         session.decide(.trash, at: index)
+        // Was this photo kept-to-Lumen a moment ago? Switching it to trash must pull
+        // it back out, or a photo the user decided to delete lingers in the vault.
+        if previous == .keep {
+            let a = source.asset(index)
+            Task { await library.removeFromLumen(a) }
+        }
         tick += 1
         showFlash(.trash)
         flyAndAdvance(CGSize(width: 0, height: -1200))
@@ -641,7 +656,11 @@ struct OrganizeView: View {
     }
 
     private func deleteTrash() async {
+        guard !deleting else { return }   // a delete (and its iOS dialog) is already in flight
+        deleting = true
+        defer { deleting = false }
         let targets = trashAssets
+        guard !targets.isEmpty else { dismiss(); return }
         do {
             try await PHPhotoLibrary.shared().performChanges { PHAssetChangeRequest.deleteAssets(targets as NSArray) }
             dismiss()

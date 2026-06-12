@@ -548,9 +548,25 @@ struct OrganizeScope: Identifiable, Hashable {
     /// Add a photo to the Lumen album right away (create it the first time), so the
     /// album exists during the session — no need to wait for a summary "apply".
     @ObservationIgnored private var lumenCollection: PHAssetCollection?
+    /// In-flight Lumen lookup/creation. @MainActor methods are re-entrant at every
+    /// `await`, so two near-simultaneous keeps would BOTH see lumenCollection == nil
+    /// and each create a "Lumen" album. Funnelling them through one shared Task means
+    /// the second keep awaits the first's result instead of creating a duplicate.
+    @ObservationIgnored private var lumenSetup: Task<PHAssetCollection?, Never>?
+
+    private func ensureLumen() async -> PHAssetCollection? {
+        if let c = lumenCollection { return c }
+        if let inFlight = lumenSetup { return await inFlight.value }
+        let task = Task { await lumenAlbum() }   // set synchronously — no await before assigning
+        lumenSetup = task
+        let c = await task.value
+        lumenCollection = c
+        lumenSetup = nil
+        return c
+    }
+
     func addToLumen(_ asset: PHAsset) async {
-        if lumenCollection == nil { lumenCollection = await lumenAlbum() }
-        guard let c = lumenCollection else { return }
+        guard let c = await ensureLumen() else { return }
         await addAssets([asset], to: c)
     }
 
