@@ -217,6 +217,16 @@ struct OrganizeScope: Identifiable, Hashable {
                                    contentMode: .aspectFit, options: Self.viewerOptions())
     }
 
+    /// Drop the viewer-size cache. Full-screen images are ~10-15MB each, so leaving
+    /// the organize screen MUST release the window it warmed — otherwise tens of MB
+    /// sit idle in the (app-lifetime) cache until the next viewer overwrites them.
+    func flushViewerCache() {
+        guard !viewerWarm.isEmpty else { return }
+        manager.stopCachingImages(for: Array(viewerWarm.values), targetSize: Self.viewerTarget,
+                                  contentMode: .aspectFit, options: Self.viewerOptions())
+        viewerWarm.removeAll()
+    }
+
     /// First `limit` assets of a scope — computed OFF the main actor (the fetch +
     /// object materialization is the costly part on a big/iCloud library).
     nonisolated private static func prewarmAssets(scope: OrganizeScope, kept: Set<String>,
@@ -234,16 +244,28 @@ struct OrganizeScope: Identifiable, Hashable {
         return (0..<n).map { result.object(at: $0) }
     }
 
+    /// Thumbnails warmed for the most-recently-opened scope, so the next prewarm can
+    /// release them. Bounded to one scope's screenful instead of growing with every
+    /// album the user browses.
+    @ObservationIgnored private var scopeWarm: [PHAsset] = []
+    private func setScopeWarm(_ assets: [PHAsset]) { scopeWarm = assets }
+
     /// Warm the first screenful of a scope's thumbnails. Runs entirely off the main
     /// thread so tapping an album NEVER blocks the open animation — the grid loads
     /// its visible cells lazily on its own; this just gives them a warm cache.
     func prewarmScope(_ scope: OrganizeScope) {
         let kept = keptIDs, order = favoriteOrder, mgr = manager
         let target = Self.gridThumbTarget, opts = Self.gridThumbOptions()
+        // Release the previous scope's warmed thumbnails before warming this one.
+        if !scopeWarm.isEmpty {
+            mgr.stopCachingImages(for: scopeWarm, targetSize: target, contentMode: .aspectFill, options: opts)
+            scopeWarm = []
+        }
         Task.detached(priority: .userInitiated) {
             let assets = Self.prewarmAssets(scope: scope, kept: kept, order: order, limit: 40)
             guard !assets.isEmpty else { return }
             mgr.startCachingImages(for: assets, targetSize: target, contentMode: .aspectFill, options: opts)
+            await self.setScopeWarm(assets)
         }
     }
 

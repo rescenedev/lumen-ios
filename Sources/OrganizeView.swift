@@ -107,7 +107,9 @@ struct OrganizeView: View {
         .sensoryFeedback(.impact(flexibility: .soft), trigger: tick)
         // Dismissing mid-playback skips task(id:) — the time observer MUST be
         // removed before the player deallocates (AVFoundation requirement).
-        .onDisappear { stopPlayback() }
+        // Also release the full-screen image window this session warmed, and drop
+        // any in-flight page transition so it can't outlive the view.
+        .onDisappear { stopPlayback(); advanceTask?.cancel(); library.flushViewerCache() }
         .onReceive(NotificationCenter.default.publisher(for: AVPlayerItem.didPlayToEndTimeNotification)) { note in
             // Our video finished → rewind and show the play badge again.
             guard let item = note.object as? AVPlayerItem, item === player?.currentItem else { return }
