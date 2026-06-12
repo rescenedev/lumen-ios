@@ -7,7 +7,7 @@ struct SettingsSheet: View {
     @Environment(\.dismiss) private var dismiss
 
     static let sponsorURL = URL(string: "https://fairy.hada.io/@lumen")!
-    static let privacyURL = URL(string: "https://rescenedev.github.io/lumen/lumen-ios/privacy.html")!
+    static let privacyURL = URL(string: "https://rescenedev.github.io/lumen-ios/privacy.html")!
     static let contactURL = URL(string: "mailto:tellme@duck.com?subject=Lumen%20iOS")!
     static let sourceURL = URL(string: "https://github.com/rescenedev/lumen-ios")!
 
