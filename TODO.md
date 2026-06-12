@@ -35,7 +35,7 @@
 
 ## 4. 출시 절차
 
-- [ ] 🔴 빌드 서명 + TestFlight 업로드 (`project.yml` 번들ID `com.prototype.lumen.ios` → 정식 ID로 변경)
+- [ ] 🔴 빌드 서명 + TestFlight 업로드 (번들ID는 `dev.rescene.lumen`으로 확정·적용 완료, 2026-06-13)
 - [ ] 🟠 실기기 테스트 (시뮬레이터로만 검증돼 옴 — 실폰 대용량 라이브러리 + iCloud)
 - [ ] 🟡 심사 메모: PhotoKit 삭제 다이얼로그가 정상 플로우임을 명시 + 후원 링크 3.1.1 소명 준비
 - [ ] 🟡 push 시 iOS 빌드+테스트 CI 워크플로 (현재 @claude 멘션 기반만 있음, xcodebuild 없음)

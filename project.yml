@@ -2,7 +2,7 @@
 # (no binary .xcodeproj is committed — this file is the source of truth)
 name: LumenIOS
 options:
-  bundleIdPrefix: com.prototype.lumen
+  bundleIdPrefix: dev.rescene
   deploymentTarget:
     iOS: "17.0"
   createIntermediateGroups: true
@@ -28,7 +28,7 @@ targets:
       - path: Sources
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.prototype.lumen.ios
+        PRODUCT_BUNDLE_IDENTIFIER: dev.rescene.lumen
         # Signing baked in so `xcodegen generate` never wipes the team again.
         DEVELOPMENT_TEAM: 589U6DQJN8
         CODE_SIGN_STYLE: Automatic
@@ -56,7 +56,7 @@ targets:
       - path: Sources/OrganizeSession.swift
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.prototype.lumen.ios.tests
+        PRODUCT_BUNDLE_IDENTIFIER: dev.rescene.lumen.tests
         DEVELOPMENT_TEAM: 589U6DQJN8
         CODE_SIGN_STYLE: Automatic
         GENERATE_INFOPLIST_FILE: YES

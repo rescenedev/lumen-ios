@@ -38,5 +38,5 @@ xcrun simctl spawn "$SIM" \
 
 echo "▸ Installing + launching the app…"
 xcrun simctl install "$SIM" "$PROD/LumenIOS.app"
-xcrun simctl launch "$SIM" com.prototype.lumen.ios
+xcrun simctl launch "$SIM" dev.rescene.lumen
 echo "✅ Done."
