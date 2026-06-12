@@ -1,24 +1,22 @@
 # Lumen for iOS
 
-**넘기다 보면, 사진이 정리돼요.** 사진 앱처럼 부드럽게 넘기고, 핀치로 줌하고,
-탭으로 스텝하면서 — 마음에 드는 사진만 ♥로 보관하고, ✕는 확인 후 한 번에 삭제하는
-네이티브 iOS 사진 정리 앱입니다.
+**넘기다 보면, 사진이 정리돼요.** 사진 앱처럼 부드럽게 넘기고, 핀치로 줌하면서 —
+남길 사진은 보관함에, 지울 사진은 위로 쓱, 실수는 ↩ 한 번. 사진도 동영상도 정리하는
+완전 무료 네이티브 iOS 앱입니다.
 
 🌐 **소개 페이지**: https://rescenedev.github.io/lumen/lumen-ios/
-
-> [!NOTE]
-> 이 저장소는 [`rescenedev/lumen`](https://github.com/rescenedev/lumen)의 `ios/`
-> 디렉토리를 자동 동기화하는 **읽기 전용 미러**입니다.
-> 이슈와 PR은 [본 저장소](https://github.com/rescenedev/lumen)로 보내주세요.
 
 ## 특징
 
 - **제스처가 전부** — 좌우 페이지 스와이프, 화면 가장자리 탭으로 스텝, 핀치 줌(+더블탭),
-  위로 올려 즐겨찾기, ♥ 보관, ✕ 삭제 후보
+  위로 올려 삭제 후보, 보관함 버튼으로 'Lumen' 앨범에 보관, ★ 즐겨찾기, ↩ 되돌리기
+- **사진 + 동영상** — 길이 배지가 붙은 동영상도 한 흐름으로, 뷰어에서 탭 재생·스크럽
 - **수십만 장도 즉시** — 전체를 순회하지 않는 쿼리 기반 로딩, 보이는 셀만 그리는
   네이티브 그리드, 스크롤을 앞지르는 프리페칭
-- **비파괴** — 보관은 즉시 'Lumen' 앨범에(앱이 꺼져도 안전), 삭제는 항상 시스템 확인 후
+- **비파괴** — 보관은 즉시 'Lumen' 앨범에(앱이 꺼져도 안전), 삭제는 항상 시스템 확인 후,
+  실수는 ↩로 즉시 복구, 다음엔 '이어서 정리'로 그 자리부터
 - **Apple 생태계 그대로** — 즐겨찾기·앨범 모두 Apple 사진(PhotoKit) 표준 사용
+- **한국어 / English** · 광고도 추적도 없이 모든 처리는 기기 안에서
 
 ## 빌드 (무료 Apple ID로 내 폰에 설치)
 
@@ -45,9 +43,15 @@ Sources/
   LibraryView.swift      홈 — 정리할 앨범 고르기
   AlbumGalleryView.swift 앨범 갤러리 (사진 그리드)
   PhotoGridView.swift    UICollectionView 그리드 (연속 핀치 줌, 프리페칭)
-  OrganizeView.swift     뷰어/정리 — 페이지 스와이프, 핀치 줌, ♥/✕
-AppStore/                App Store 메타데이터·스크린샷
+  OrganizeView.swift     뷰어/정리 — 페이지 스와이프, 핀치 줌, 보관/★/↩, 동영상 재생
+  OrganizeSession.swift  정리 결정 + 되돌리기 로직 (순수, 단위 테스트)
+  SettingsView.swift     설정 시트 (홈에서 아래로 당겨 호출)
+  Shared/ImageEditor.swift  크로스플랫폼 편집 엔진 (macOS 버전과 동일 소스)
+AppStore/                App Store 메타데이터·스크린샷 (screenshots/{ko,en-US}/)
 ```
+
+이 편집 엔진(`Sources/Shared/ImageEditor.swift`)은 macOS [rescenedev/lumen](https://github.com/rescenedev/lumen)과
+같은 소스를 공유합니다 — 양쪽에 벤더링되어 있으니 한쪽을 고치면 다른 쪽도 함께 반영하세요.
 
 ## 라이선스
 

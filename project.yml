@@ -29,7 +29,7 @@ targets:
       # Reuse the real, cross-platform editing engine straight from the macOS
       # tree — no duplication. (Step 3 of IOS_PORT.md replaces this with a
       # proper LumenEngine package target.)
-      - path: ../Sources/Lumen/Services/ImageEditor.swift
+      - path: Sources/Shared/ImageEditor.swift
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.prototype.lumen.ios
@@ -55,7 +55,7 @@ targets:
     platform: iOS
     sources:
       - path: Tests
-      - path: ../Sources/Lumen/Services/ImageEditor.swift
+      - path: Sources/Shared/ImageEditor.swift
       # Pure-logic app types under test, compiled straight into the bundle.
       - path: Sources/OrganizeSession.swift
     settings:
