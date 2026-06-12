@@ -21,7 +21,7 @@
 - [x] 🟠 **동영상 지원** — 그리드 길이 배지 + 뷰어 탭 재생(AVPlayerLayer) + 동영상 스마트 앨범 (c7bbf48)
 - [x] 🟠 **영어 로컬라이즈** — String Catalog ko 소스 + en 번역, 권한 문구 포함 (b4658da)
 - [x] 🟠 **설정 화면** — 홈 기어 → 후원/방침/문의/버전 시트 (b63fd80)
-- [ ] 🟠 **`.limited` 권한 UX** — 일부 사진만 허용 시 "더 선택하기" 안내 (현재 authorized로 뭉뚱그림)
+- [x] 🟠 **`.limited` 권한 UX** — 홈 배너 + 더 선택하기(`presentLimitedLibraryPicker`) + 빈 선택 안내 + 시스템 알림 억제 (bfd0c18, 시뮬레이터 실제 Limit Access 플로우로 검증 2026-06-13)
 - [x] 🟡 **정리 위치 기억** — 앨범별 인덱스 저장(`lumen.resume.<scopeId>`) + 정리 탭 "이어서 정리" 카드로 복귀 (OrganizeView/LibraryView 구현 완료)
 - [ ] 🟡 **정리 성과 표시** — 요약 화면에 "OO MB 확보" (PHAsset 리소스 크기 합산). 이 장르 핵심 만족 포인트
 
