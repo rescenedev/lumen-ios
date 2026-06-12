@@ -693,6 +693,66 @@
           }
         }
       }
+    },
+    "일부 사진만 보고 있어요" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Only selected photos are visible"
+          }
+        }
+      }
+    },
+    "전체 허용은 설정 앱에서 바꿀 수 있어요" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You can allow full access in the Settings app"
+          }
+        }
+      }
+    },
+    "더 선택하기" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Select More"
+          }
+        }
+      }
+    },
+    "사진 더 선택하기" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Select More Photos"
+          }
+        }
+      }
+    },
+    "선택된 사진이 없어요" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No photos selected"
+          }
+        }
+      }
+    },
+    "일부 사진만 접근이 허용된 상태라, Lumen은 선택한 사진만 볼 수 있어요." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Photo access is limited, so Lumen can only see the photos you've selected."
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

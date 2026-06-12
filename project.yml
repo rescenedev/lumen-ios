@@ -26,6 +26,12 @@ targets:
     platform: iOS
     sources:
       - path: Sources
+    info:
+      path: Sources/Info.plist
+      properties:
+        # .limited users get our in-app banner + 더 선택하기 instead of the
+        # system's occasional "manage limited access" alert on launch.
+        PHPhotoLibraryPreventAutomaticLimitedAccessAlert: true
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: dev.rescene.lumen

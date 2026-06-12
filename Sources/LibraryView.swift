@@ -1,5 +1,6 @@
 import SwiftUI
 import Photos
+import PhotosUI   // presentLimitedLibraryPicker lives here, not in Photos
 
 /// Home: pick what to organize (전체 / 즐겨찾기 / 최근 / 스크린샷 / each album),
 /// then swipe just that bundle. Slate dark theme to match the organize screen.
@@ -86,28 +87,84 @@ struct LibraryView: View {
         }
     }
 
-    /// Branded empty state — distinguishes "no photos yet" from "all organized".
+    /// Branded empty state — distinguishes "no photos yet" from "all organized",
+    /// and under .limited access explains that Lumen only sees picked photos.
     private var emptyState: some View {
         VStack(spacing: 16) {
             LumenGlyph(size: 72)
-            Text(!library.hasAnyPhotos ? String(localized: "사진이 없어요") : String(localized: "모두 정리했어요"))
-                .font(.title2.bold()).foregroundStyle(.white)
-            Text(!library.hasAnyPhotos
-                 ? String(localized: "기기에 사진이 추가되면 여기에서 정리할 수 있어요.")
-                 : String(localized: "정리할 사진을 모두 둘러봤어요. 보관한 사진은 ‘Lumen’ 앨범에 모여 있어요."))
-                .font(.subheadline).foregroundStyle(.white.opacity(0.55))
-                .multilineTextAlignment(.center).padding(.horizontal, 44)
+            if library.limited, !library.hasAnyPhotos {
+                Text("선택된 사진이 없어요")
+                    .font(.title2.bold()).foregroundStyle(.white)
+                Text("일부 사진만 접근이 허용된 상태라, Lumen은 선택한 사진만 볼 수 있어요.")
+                    .font(.subheadline).foregroundStyle(.white.opacity(0.55))
+                    .multilineTextAlignment(.center).padding(.horizontal, 44)
+                Button { Self.presentLimitedLibraryPicker() } label: {
+                    Text("사진 더 선택하기")
+                        .font(.subheadline.weight(.semibold)).foregroundStyle(.white.opacity(0.9))
+                        .padding(.horizontal, 18).padding(.vertical, 9)
+                        .background(.white.opacity(0.1), in: Capsule())
+                        .overlay(Capsule().strokeBorder(.white.opacity(0.1)))
+                }
+                .buttonStyle(.plain).padding(.top, 4)
+            } else {
+                Text(!library.hasAnyPhotos ? String(localized: "사진이 없어요") : String(localized: "모두 정리했어요"))
+                    .font(.title2.bold()).foregroundStyle(.white)
+                Text(!library.hasAnyPhotos
+                     ? String(localized: "기기에 사진이 추가되면 여기에서 정리할 수 있어요.")
+                     : String(localized: "정리할 사진을 모두 둘러봤어요. 보관한 사진은 ‘Lumen’ 앨범에 모여 있어요."))
+                    .font(.subheadline).foregroundStyle(.white.opacity(0.55))
+                    .multilineTextAlignment(.center).padding(.horizontal, 44)
+            }
         }
         .padding(.bottom, 40)
+    }
+
+    /// System sheet that lets a .limited user add/remove visible photos.
+    /// (Upgrading to full access can only happen in the Settings app.)
+    static func presentLimitedLibraryPicker() {
+        let root = UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .first { $0.activationState == .foregroundActive }?
+            .keyWindow?.rootViewController
+        guard let root else { return }
+        PHPhotoLibrary.shared().presentLimitedLibraryPicker(from: root)
     }
 
     /// How far past the top you pull before settings open — deliberately long
     /// (~2x a refresh pull) so casual bounces never trigger it.
     private static let settingsPullThreshold: CGFloat = 160
 
+    /// .limited: a quiet card above the album list — says why the library looks
+    /// small and offers the system "add more photos" sheet right there.
+    private var limitedBanner: some View {
+        HStack(spacing: 12) {
+            Image(systemName: "photo.on.rectangle.angled")
+                .font(.title3).foregroundStyle(.white.opacity(0.7))
+            VStack(alignment: .leading, spacing: 2) {
+                Text("일부 사진만 보고 있어요")
+                    .font(.subheadline.weight(.semibold)).foregroundStyle(.white)
+                Text("전체 허용은 설정 앱에서 바꿀 수 있어요")
+                    .font(.caption).foregroundStyle(.white.opacity(0.5))
+            }
+            Spacer(minLength: 8)
+            Button { Self.presentLimitedLibraryPicker() } label: {
+                Text("더 선택하기")
+                    .font(.subheadline.weight(.semibold)).foregroundStyle(.white.opacity(0.9))
+                    .padding(.horizontal, 13).padding(.vertical, 7)
+                    .background(.white.opacity(0.1), in: Capsule())
+                    .overlay(Capsule().strokeBorder(.white.opacity(0.1)))
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(14)
+        .background(.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 14))
+        .overlay(RoundedRectangle(cornerRadius: 14).strokeBorder(.white.opacity(0.07)))
+    }
+
     private var scopeList: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 10) {
+                if library.limited { limitedBanner }
                 HStack {
                     Text("정리할 앨범").font(.subheadline.weight(.medium)).foregroundStyle(.white.opacity(0.5))
                     Spacer()

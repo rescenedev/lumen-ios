@@ -104,6 +104,7 @@ struct OrganizeScope: Identifiable, Hashable {
     var scopes: [OrganizeScope] = []
     var hasAnyPhotos = false
     var authorized = false
+    var limited = false      // .limited: only user-picked photos are visible
     var loaded = false
     var albumSort: AlbumSort = AlbumSort(rawValue: UserDefaults.standard.string(forKey: "lumen.albumSort") ?? "") ?? .recent {
         didSet {
@@ -267,6 +268,10 @@ struct OrganizeScope: Identifiable, Hashable {
             }
         }
         authorized = (status == .authorized || status == .limited)
+        limited = (status == .limited)
+        // QA hook (like -autoOrganize): render the .limited UI with full access,
+        // since simulators offer no way to force a real limited grant.
+        if ProcessInfo.processInfo.arguments.contains("-forceLimited") { limited = true }
         // Populate scopes BEFORE marking loaded, so the home never flashes the
         // "사진이 없어요" empty state while photos are still being fetched.
         if authorized {
