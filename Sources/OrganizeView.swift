@@ -82,7 +82,7 @@ struct OrganizeView: View {
     // shrank mid-session) hands back a blank PHAsset, which must never reach
     // deleteAssets — its empty localIdentifier filters it out here.
     private var trashAssets: [PHAsset] {
-        session.trashIndices.map { source.asset($0) }.filter { !$0.localIdentifier.isEmpty }
+        session.trashIndices.map { source.asset($0) }.filter(\.isUsable)
     }
     @State private var deleting = false   // guards against double-tapping 한번에 삭제
 
@@ -618,6 +618,9 @@ struct OrganizeView: View {
         guard !targets.isEmpty else { dismiss(); return }
         do {
             try await PHPhotoLibrary.shared().performChanges { PHAssetChangeRequest.deleteAssets(targets as NSArray) }
+            // Wait for scopes to reflect the deletion before closing, so an album
+            // emptied to zero doesn't flash a leftover placeholder cell behind us.
+            await library.reloadAndWait()
             dismiss()
         } catch { /* 사용자가 iOS 다이얼로그 취소 — 요약 화면에 머뭄 */ }
     }

@@ -81,6 +81,7 @@ struct PhotoGridView: UIViewRepresentable {
 
         private func assets(at indexPaths: [IndexPath]) -> [PHAsset] {
             indexPaths.compactMap { $0.item < parent.source.count ? parent.source.asset($0.item) : nil }
+                .filter(\.isUsable)   // skip blank placeholders (emptied library)
         }
 
         func collectionView(_ cv: UICollectionView, numberOfItemsInSection s: Int) -> Int { parent.source.count }
@@ -265,6 +266,12 @@ final class ThumbCell: UICollectionViewCell {
     func configure(_ asset: PHAsset, manager: PHCachingImageManager, target: CGSize) {
         assetID = asset.localIdentifier
         self.manager = manager
+        // A blank placeholder asset can appear for one frame after the library
+        // empties out — e.g. deleting the last photo in an album. Requesting an
+        // image for it crashes PhotoKit (nil cache key), so skip it.
+        guard asset.isUsable else {
+            imageView.image = nil; heart.isHidden = true; duration.isHidden = true; return
+        }
         heart.isHidden = !asset.isFavorite
         if asset.mediaType == .video {
             duration.text = Self.durationText(asset.duration)

@@ -31,7 +31,10 @@ struct AlbumGalleryView: View {
     var body: some View {
         ZStack {
             Color.lumenBG.ignoresSafeArea()
-            if source.count == 0 {
+            // count > 0 but the first asset is a blank placeholder means the album
+            // was just emptied (its fetch resolved to zero while scope.count still
+            // says 1) — show the empty state instead of a grey placeholder cell.
+            if source.count == 0 || !source.asset(0).isUsable {
                 Text("사진이 없어요").font(.subheadline).foregroundStyle(.white.opacity(0.5))
             } else {
                 PhotoGridView(source: source, manager: library.manager, reloadKey: ver,

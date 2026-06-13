@@ -3,6 +3,15 @@ import UIKit
 import SwiftUI
 import AVFoundation
 
+extension PHAsset {
+    /// A directly-constructed `PHAsset()` placeholder — handed back by GridSource
+    /// when the library empties out (e.g. deleting an album's last photo) — has a
+    /// localIdentifier like "(null)/L0/001": NOT empty, but invalid. Requesting an
+    /// image for it crashes PhotoKit deep in its cache-key builder, so every image
+    /// path must skip it.
+    var isUsable: Bool { !localIdentifier.isEmpty && !localIdentifier.hasPrefix("(null)") }
+}
+
 /// Lazy access to a scope's photos. Backed by a PHFetchResult (no array built up
 /// front, so opening 전체 사진 is instant), or by a pre-ordered array for 즐겨찾기.
 struct GridSource {
@@ -205,6 +214,7 @@ struct OrganizeScope: Identifiable, Hashable {
     /// swipe lands on an already-decoded (and, for iCloud, already-downloaded)
     /// image instead of a spinner. Keeps only the current window warm.
     func prewarmViewer(_ assets: [PHAsset]) {
+        let assets = assets.filter(\.isUsable)   // drop blank placeholders
         guard !assets.isEmpty else { return }
         let newIDs = Set(assets.map(\.localIdentifier))
         let stale = viewerWarm.values.filter { !newIDs.contains($0.localIdentifier) }
@@ -322,6 +332,14 @@ struct OrganizeScope: Identifiable, Hashable {
     func refresh() {
         guard authorized else { return }
         Task { await reload() }
+    }
+
+    /// Await a full reload — used right after a mutation (e.g. deleting photos) so
+    /// the caller can dismiss only once scopes reflect the change. Without this, a
+    /// just-emptied album briefly shows a leftover placeholder cell ("회색 잔영").
+    func reloadAndWait() async {
+        guard authorized else { return }
+        await reload()
     }
 
     /// Instant, optimistic update of the 즐겨찾기 scope cover/count right when the
@@ -640,6 +658,8 @@ struct OrganizeScope: Identifiable, Hashable {
     /// Same stream with an exact pixel target — the viewer uses `viewerTarget` here
     /// so its requests hit the `prewarmViewer` cache.
     func imageStream(_ asset: PHAsset, target: CGSize, mode: PHImageContentMode) -> AsyncStream<UIImage> {
+        // Blank placeholder → no request; requesting it crashes PhotoKit.
+        guard asset.isUsable else { return AsyncStream { $0.finish() } }
         let mgr = manager
         return AsyncStream { continuation in
             let opt = Self.viewerOptions()             // opportunistic + network + fast
@@ -655,7 +675,8 @@ struct OrganizeScope: Identifiable, Hashable {
 
     private func request(_ asset: PHAsset, target: CGSize, mode: PHImageContentMode,
                          delivery: PHImageRequestOptionsDeliveryMode) async -> UIImage? {
-        await withCheckedContinuation { c in
+        guard asset.isUsable else { return nil }   // blank placeholder → no request
+        return await withCheckedContinuation { c in
             let opt = PHImageRequestOptions()
             opt.deliveryMode = delivery
             opt.isNetworkAccessAllowed = true       // fetch iCloud originals if needed
