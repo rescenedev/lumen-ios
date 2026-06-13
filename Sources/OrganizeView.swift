@@ -24,17 +24,16 @@ private enum Flash {
     }
 }
 
-/// Viewer + organize. You enter as a viewer: swipe LEFT/RIGHT to browse (straight
-/// line), swipe UP to favorite. Tapping "정리 시작" begins organizing from the photo
-/// you're on (no need to restart from the first) — ✕/♥ appear: ♥ files into "Lumen"
-/// (live), ✕ marks for deletion, applied/confirmed on the summary.
+/// Full-screen organize. Always in organize mode — no "start" gate. Swipe LEFT/RIGHT
+/// to browse without deciding; the 🗄/★ buttons file into "Lumen" / favorite and fly
+/// to the next photo; swipe UP marks for deletion. Deletions are applied/confirmed on
+/// the summary screen.
 struct OrganizeView: View {
     let scope: OrganizeScope
     let library: PhotoLibrary
     @Environment(\.dismiss) private var dismiss
 
     @State private var source: GridSource                  // photos for this scope (ready at init)
-    @State private var organizing = false                 // viewer first, then organize
     @State private var index: Int
 
     init(scope: OrganizeScope, library: PhotoLibrary, startIndex: Int = 0) {
@@ -43,9 +42,6 @@ struct OrganizeView: View {
         let s = library.gridSource(for: scope)
         _source = State(initialValue: s)
         _index = State(initialValue: min(max(startIndex, 0), max(s.count - 1, 0)))
-        // Screenshot helper: jump straight into organize mode (no taps possible
-        // in automated captures). Pair with -autoOrganize -autoViewer.
-        _organizing = State(initialValue: ProcessInfo.processInfo.arguments.contains("-autoStartOrganize"))
     }
     @State private var offset: CGSize = .zero
     @State private var session = OrganizeSession()         // decisions + undo history
@@ -99,7 +95,7 @@ struct OrganizeView: View {
                 photoLayer(source)
                 flashOverlay
                 topBar
-                if organizing { bottomControls } else { startBar }
+                bottomControls
                 if currentIsVideo, player != nil { videoScrubber.zIndex(3) }
             }
         }
@@ -359,7 +355,7 @@ struct OrganizeView: View {
         .padding(.horizontal, 16).padding(.vertical, 8)
         .background(.ultraThinMaterial, in: Capsule())
         .padding(.horizontal, 24)
-        .padding(.bottom, organizing ? 104 : 96)
+        .padding(.bottom, 104)
         .frame(maxHeight: .infinity, alignment: .bottom)
     }
 
@@ -423,36 +419,6 @@ struct OrganizeView: View {
         .frame(maxHeight: .infinity, alignment: .top)
     }
 
-    // MARK: - Viewer bottom bar ("정리 시작" centered, ★ always available on the right)
-
-    private var startBar: some View {
-        ZStack {
-            Button {
-                withAnimation(.spring(response: 0.35)) { organizing = true }
-            } label: {
-                Text("정리 시작")
-                    .font(.subheadline.weight(.semibold)).foregroundStyle(.white)
-                    .padding(.horizontal, 28).padding(.vertical, 13)
-                    .background(.ultraThinMaterial, in: Capsule())
-                    .overlay(Capsule().strokeBorder(.white.opacity(0.18)))
-                    .shadow(color: .black.opacity(0.3), radius: 10, y: 4)
-            }
-            .buttonStyle(.plain)
-            // Browsing shouldn't lock keep/favorite behind "정리 시작" — both work
-            // in place here (no fly-away, that's an organize-mode behavior), and
-            // they mirror organize mode's sides: 🗄 left, ★ right. Compact size:
-            // they sit next to the small capsule, not the 72pt organize pads.
-            HStack {
-                smallControl("tray.full.fill") { decide(.keep) }
-                Spacer()
-                smallControl(currentIsFav ? "star.fill" : "star") { favorite() }
-            }
-            .padding(.horizontal, 28)
-        }
-        .padding(.bottom, 21)
-        .frame(maxHeight: .infinity, alignment: .bottom)
-    }
-
     // MARK: - Bottom controls (🗄 keep-to-Lumen left, ★ favorite right — the tray
     // matches the vault tab icon, so "keep" and "where kept things live" read as one)
 
@@ -471,18 +437,6 @@ struct OrganizeView: View {
         Button(action: action) {
             Image(systemName: icon).font(.system(size: 28, weight: .bold)).foregroundStyle(.white.opacity(0.85))
                 .frame(width: 72, height: 72)
-                .background(.ultraThinMaterial, in: Circle())
-                .overlay(Circle().strokeBorder(.white.opacity(0.15)))
-                .shadow(color: .black.opacity(0.3), radius: 8, y: 4)
-        }
-        .buttonStyle(.plain)
-    }
-
-    /// Capsule-height variant for the browsing bar.
-    private func smallControl(_ icon: String, _ action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Image(systemName: icon).font(.system(size: 18, weight: .bold)).foregroundStyle(.white.opacity(0.85))
-                .frame(width: 46, height: 46)
                 .background(.ultraThinMaterial, in: Circle())
                 .overlay(Circle().strokeBorder(.white.opacity(0.15)))
                 .shadow(color: .black.opacity(0.3), radius: 8, y: 4)
@@ -570,8 +524,7 @@ struct OrganizeView: View {
         if d == .keep { Task { await library.addToLumen(a) } }   // file into Lumen, live
         tick += 1
         showFlash(d == .keep ? .keep : .trash)
-        // Organize mode advances; browsing keeps the photo in place (undoable).
-        if organizing { flyAndAdvance(CGSize(width: -pageW, height: 0)) }
+        flyAndAdvance(CGSize(width: -pageW, height: 0))
     }
 
     /// Up-swipe: mark the photo for deletion and fly it up.
@@ -602,8 +555,7 @@ struct OrganizeView: View {
         currentIsFav = newValue
         tick += 1
         showFlash(newValue ? .favorite : .unfavorite)
-        // Organize mode: ★ is a decision, fly on. Viewer mode: toggle in place.
-        if organizing { flyAndAdvance(CGSize(width: 0, height: -1200)) }
+        flyAndAdvance(CGSize(width: 0, height: -1200))
     }
 
     /// Undo the most recent action: restore the decision table, revert the side

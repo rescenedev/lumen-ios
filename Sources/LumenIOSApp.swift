@@ -1,7 +1,7 @@
 import SwiftUI
 import Photos
 
-enum LumenTab { case home, allPhotos, organize, favorites, vault }
+enum LumenTab { case organize, allPhotos, favorites, vault }
 
 @main
 struct LumenIOSApp: App {
@@ -15,7 +15,7 @@ struct LumenIOSApp: App {
 
 struct RootView: View {
     @State private var lib = PhotoLibrary()
-    @State private var selectedTab: LumenTab = .home
+    @State private var selectedTab: LumenTab = .organize
     @State private var showSplash = true
     // Bumped when the CURRENT tab's icon is re-tapped — panes react by popping
     // their overlay / scrolling to top (standard iOS tab behavior). Switching
@@ -24,29 +24,37 @@ struct RootView: View {
 
     var body: some View {
         ZStack {
-            // All five tabs stay alive in a ZStack (opacity-toggled) instead of being
-            // rebuilt per switch: the collection views, their cells, and the decoded
-            // thumbnails persist, so entering 전체 사진 (or any tab) does ZERO work —
-            // no re-fetch, no re-layout, no thumbnail re-requests. Hidden panes also
-            // pre-build at launch, so even the FIRST entry is instant.
-            ZStack {
-                pane(.home)      { LibraryView(library: lib, scrollTopKey: topTicks[.home] ?? 0) }
-                pane(.allPhotos) { allPhotosTab }
-                pane(.organize)  { OrganizePickerView(library: lib, scrollTopKey: topTicks[.organize] ?? 0) }
-                pane(.favorites) { favoritesTab }
-                pane(.vault)     { vaultTab }
-            }
-                .safeAreaInset(edge: .bottom, spacing: 0) {
-                    Color.clear.frame(height: lib.authorized ? 72 : 0)
-                }
-            if lib.authorized {
-                VStack(spacing: 0) {
-                    Spacer()
-                    FloatingTabBar(selected: $selectedTab) { tab in
-                        topTicks[tab, default: 0] += 1
+            if lib.loaded && !lib.authorized {
+                // Permission gate hosted here (was the home tab, now removed) so the
+                // onboarding screen owns the whole window until access is granted.
+                OnboardingView { Task { await lib.load() } }
+                    .preferredColorScheme(.dark)
+            } else {
+                // All four tabs stay alive in a ZStack (opacity-toggled) instead of being
+                // rebuilt per switch: the collection views, their cells, and the decoded
+                // thumbnails persist, so entering 전체 사진 (or any tab) does ZERO work —
+                // no re-fetch, no re-layout, no thumbnail re-requests. Hidden panes also
+                // pre-build at launch, so even the FIRST entry is instant.
+                ZStack {
+                    ZStack {
+                        pane(.organize)  { OrganizePickerView(library: lib, scrollTopKey: topTicks[.organize] ?? 0) }
+                        pane(.allPhotos) { allPhotosTab }
+                        pane(.favorites) { favoritesTab }
+                        pane(.vault)     { vaultTab }
+                    }
+                    .safeAreaInset(edge: .bottom, spacing: 0) {
+                        Color.clear.frame(height: lib.authorized ? 72 : 0)
+                    }
+                    if lib.authorized {
+                        VStack(spacing: 0) {
+                            Spacer()
+                            FloatingTabBar(selected: $selectedTab) { tab in
+                                topTicks[tab, default: 0] += 1
+                            }
+                        }
+                        .ignoresSafeArea(edges: .bottom)
                     }
                 }
-                .ignoresSafeArea(edges: .bottom)
             }
             if showSplash { SplashView().transition(.opacity) }
         }
@@ -127,9 +135,8 @@ struct FloatingTabBar: View {
 
     var body: some View {
         HStack(spacing: 0) {
-            tabBtn(.home,       "house.fill")
+            tabBtn(.organize,   "square.stack.3d.up.fill")   // 전체 앨범(리스트) + 정리 진입
             tabBtn(.allPhotos,  "photo.stack.fill")
-            tabBtn(.organize,   "square.stack.3d.up.fill")   // card stack = the swipe-organize metaphor (sparkles read as "AI")
             tabBtn(.favorites,  "star.fill")
             tabBtn(.vault,      "tray.full.fill")
         }
