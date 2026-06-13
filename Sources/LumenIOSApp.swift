@@ -17,6 +17,7 @@ struct RootView: View {
     @State private var lib = PhotoLibrary()
     @State private var selectedTab: LumenTab = .organize
     @State private var showSplash = true
+    @Environment(\.scenePhase) private var scenePhase
     // Bumped when the CURRENT tab's icon is re-tapped — panes react by popping
     // their overlay / scrolling to top (standard iOS tab behavior). Switching
     // tabs never touches scroll positions.
@@ -65,6 +66,13 @@ struct RootView: View {
             if !lib.loaded { await lib.load() }
             try? await minWait
             withAnimation(.easeOut(duration: 0.4)) { showSplash = false }
+        }
+        // Returning from Settings (where the user may have granted/revoked/switched
+        // Photos access) → re-check, since iOS won't re-prompt and load() ran once.
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active, lib.loaded {
+                Task { await lib.recheckAuthorization() }
+            }
         }
     }
 

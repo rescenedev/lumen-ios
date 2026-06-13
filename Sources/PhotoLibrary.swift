@@ -334,6 +334,31 @@ struct OrganizeScope: Identifiable, Hashable {
         Task { await reload() }
     }
 
+    /// Re-check Photos authorization on foreground return — the user may have
+    /// granted, revoked, or switched (limited ↔ full) access in Settings while we
+    /// were backgrounded. iOS won't re-prompt after a denial, so Settings is the
+    /// only path back, and nothing reflects until we notice the change here.
+    func recheckAuthorization() async {
+        let status = PHPhotoLibrary.authorizationStatus(for: .readWrite)
+        let nowAuthorized = (status == .authorized || status == .limited)
+        let nowLimited = (status == .limited)
+        if nowAuthorized && !authorized {
+            // Newly granted in Settings → load the library for the first time.
+            authorized = true
+            limited = nowLimited
+            await reload()
+            if !observing { PHPhotoLibrary.shared().register(self); observing = true }
+        } else if nowAuthorized && limited != nowLimited {
+            // limited ↔ full toggled in Settings → refresh what's visible.
+            limited = nowLimited
+            await reload()
+        } else if !nowAuthorized && authorized {
+            // Access revoked in Settings → drop back to onboarding.
+            authorized = false
+            limited = false
+        }
+    }
+
     /// Await a full reload — used right after a mutation (e.g. deleting photos) so
     /// the caller can dismiss only once scopes reflect the change. Without this, a
     /// just-emptied album briefly shows a leftover placeholder cell ("회색 잔영").

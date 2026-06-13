@@ -28,6 +28,18 @@ struct OnboardingView: View {
     let onAuthorized: () -> Void
     @State private var requesting = false
 
+    /// Already denied/restricted? iOS won't re-prompt, so the primary button must
+    /// send the user to Settings instead of calling the (no-op) authorization
+    /// request again. Re-evaluated on every body pass (e.g. on foreground return).
+    private var isDenied: Bool {
+        let s = PHPhotoLibrary.authorizationStatus(for: .readWrite)
+        return s == .denied || s == .restricted
+    }
+
+    private func openSettings() {
+        if let url = URL(string: UIApplication.openSettingsURLString) { UIApplication.shared.open(url) }
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             Spacer()
@@ -44,10 +56,14 @@ struct OnboardingView: View {
 
             Spacer()
             Button {
-                requesting = true
-                Task { onAuthorized(); requesting = false }
+                if isDenied {
+                    openSettings()   // can't re-prompt; bounce to Settings
+                } else {
+                    requesting = true
+                    Task { onAuthorized(); requesting = false }
+                }
             } label: {
-                Text("사진 접근 허용").font(.headline)
+                Text(isDenied ? "설정에서 사진 접근 허용" : "사진 접근 허용").font(.headline)
                     .opacity(requesting ? 0 : 1)
                     .frame(maxWidth: .infinity).padding(.vertical, 16)
                     .overlay { if requesting { ProgressView().tint(.white) } }
@@ -55,11 +71,15 @@ struct OnboardingView: View {
             .background(heroGradient, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
             .foregroundStyle(.white)
             .padding(.horizontal, 24).padding(.bottom, 18)
-
-            Button("설정에서 변경") {
-                if let url = URL(string: UIApplication.openSettingsURLString) { UIApplication.shared.open(url) }
+            // When denied, the Settings path IS the primary button — show a hint
+            // line instead of a redundant second button.
+            if isDenied {
+                Text("설정 ▸ Lumen ▸ 사진에서 ‘전체 액세스’를 선택하세요")
+                    .font(.footnote).foregroundStyle(.white.opacity(0.5))
+                    .multilineTextAlignment(.center).padding(.horizontal, 30).padding(.bottom, 24)
+            } else {
+                Color.clear.frame(height: 1).padding(.bottom, 24)
             }
-            .font(.footnote).foregroundStyle(.white.opacity(0.5)).padding(.bottom, 24)
         }
     }
 
