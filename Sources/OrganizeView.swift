@@ -131,7 +131,8 @@ struct OrganizeView: View {
             ForEach(visibleIndices, id: \.self) { i in
                 OrganizeCard(asset: source.asset(i), library: library,
                              player: i == index ? player : nil,
-                             isPlaying: i == index && playing)
+                             isPlaying: i == index && playing,
+                             isTrashed: session.decision(at: i) == .trash)
                     .overlay(alignment: .top) { if i == index { trashHint } }
                     .scaleEffect(cardScale(i))
                     .offset(x: CGFloat(i - index) * pageW + offset.width + (i == index ? pan.width : 0),
@@ -713,20 +714,35 @@ struct OrganizeCard: View {
     let library: PhotoLibrary
     var player: AVPlayer? = nil
     var isPlaying: Bool = false
+    var isTrashed: Bool = false    // marked for deletion — blur + dim so it reads as "already discarded"
     @State private var image: UIImage?
     @State private var showSpinner = false
 
     var body: some View {
         ZStack {
             Color.lumenBG
-            if let player {
-                PlayerLayerView(player: player)
-            } else if let image {
-                Image(uiImage: image).resizable().scaledToFit()
-            } else if showSpinner {
-                ProgressView().tint(.white)
+            Group {
+                if let player {
+                    PlayerLayerView(player: player)
+                } else if let image {
+                    Image(uiImage: image).resizable().scaledToFit()
+                } else if showSpinner {
+                    ProgressView().tint(.white)
+                }
             }
-            if asset.mediaType == .video, !isPlaying {
+            // Trash-marked photos blur + darken — clearly "set aside for deletion",
+            // but still recognizable so an up-swipe back to it can be undone.
+            .blur(radius: isTrashed ? 16 : 0)
+            .animation(.easeOut(duration: 0.25), value: isTrashed)
+            if isTrashed {
+                Color.black.opacity(0.3).ignoresSafeArea()
+                    .transition(.opacity)
+                Image(systemName: "trash.fill")
+                    .font(.system(size: 30, weight: .bold)).foregroundStyle(.white.opacity(0.9))
+                    .shadow(color: .black.opacity(0.4), radius: 8)
+                    .transition(.scale(scale: 0.7).combined(with: .opacity))
+            }
+            if asset.mediaType == .video, !isPlaying, !isTrashed {
                 Image(systemName: "play.fill")
                     .font(.system(size: 26, weight: .bold)).foregroundStyle(.white.opacity(0.85))
                     .frame(width: 72, height: 72)
@@ -737,6 +753,7 @@ struct OrganizeCard: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .animation(.easeOut(duration: 0.25), value: isTrashed)
         .task(id: asset.localIdentifier) {
             // Spinner only if loading actually takes a moment — a cache hit lands
             // within a frame or two and shouldn't flash a spinner first.
