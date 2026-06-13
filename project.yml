@@ -26,6 +26,12 @@ targets:
     platform: iOS
     sources:
       - path: Sources
+    # presentLimitedLibraryPicker(from:) is a PhotosUI category on PHPhotoLibrary.
+    # `import PhotosUI` compiles, but the category selector is only registered at
+    # runtime if PhotosUI is actually linked — otherwise it crashes with an
+    # unrecognized selector. Link it explicitly.
+    dependencies:
+      - sdk: PhotosUI.framework
     info:
       path: Sources/Info.plist
       properties:
