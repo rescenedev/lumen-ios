@@ -730,12 +730,12 @@ struct OrganizeCard: View {
                     ProgressView().tint(.white)
                 }
             }
-            // Trash-marked photos blur + darken — clearly "set aside for deletion",
-            // but still recognizable so an up-swipe back to it can be undone.
-            .blur(radius: isTrashed ? 16 : 0)
+            // Trash-marked photos get a light blur + dim — enough to read as "set
+            // aside for deletion" while keeping the subject clearly recognizable.
+            .blur(radius: isTrashed ? 5 : 0)
             .animation(.easeOut(duration: 0.25), value: isTrashed)
             if isTrashed {
-                Color.black.opacity(0.3).ignoresSafeArea()
+                Color.black.opacity(0.12).ignoresSafeArea()
                     .transition(.opacity)
                 Image(systemName: "trash.fill")
                     .font(.system(size: 30, weight: .bold)).foregroundStyle(.white.opacity(0.9))
